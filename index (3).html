@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>智链决策中枢 · 地缘风险对抗系统 | 二次规划+区块链信任锚点</title>
+    <!-- 引入 Plotly 和字体 -->
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a0f1e, #03060c);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* 指挥室三栏布局 */
+        .war-room {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(6, 14, 24, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            border: 1px solid rgba(0, 230, 255, 0.4);
+            padding: 20px;
+            transition: 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel:hover {
+            border-color: cyan;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .panel h2 {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            border-left: 3px solid #0ff;
+            padding-left: 12px;
+            color: #eef;
+            font-weight: 600;
+        }
+
+        /* 左侧对话气泡 */
+        .chat-log {
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 24px;
+            padding: 16px;
+            height: 320px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .agent {
+            font-weight: bold;
+            min-width: 70px;
+        }
+
+        .supplier {
+            color: #88ff88;
+        }
+
+        .sanction {
+            color: #ff8888;
+        }
+
+        .typing {
+            border-right: 2px solid cyan;
+            white-space: nowrap;
+            overflow: hidden;
+            animation: blink 0.7s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { border-color: cyan; }
+            50% { border-color: transparent; }
+        }
+
+        .risk-score {
+            background: linear-gradient(135deg, #1a2a3a, #0a1a2a);
+            border-radius: 24px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .risk-number {
+            font-size: 48px;
+            font-weight: 800;
+            color: #ffaa44;
+            text-shadow: 0 0 10px #ffaa44;
+        }
+
+        /* 中间决策区 */
+        .slider-group {
+            margin: 16px 0;
+        }
+
+        label {
+            display: block;
+            color: #bbd4ff;
+            font-size: 0.8rem;
+            margin-bottom: 6px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            background: #0a2a3a;
+            height: 4px;
+            border-radius: 5px;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]:focus {
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: cyan;
+            cursor: pointer;
+            box-shadow: 0 0 6px cyan;
+        }
+
+        .weight-badge {
+            background: #0a2a3a;
+            padding: 6px 12px;
+            border-radius: 40px;
+            display: inline-block;
+            font-size: 12px;
+            margin-right: 8px;
+        }
+
+        .compare-table {
+            background: rgba(0, 20, 40, 0.6);
+            border-radius: 20px;
+            padding: 12px;
+            margin: 16px 0;
+        }
+
+        .compare-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        /* 右侧执行模块 */
+        .sop-step {
+            background: rgba(0, 40, 60, 0.5);
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-left: 3px solid cyan;
+            transition: 0.2s;
+        }
+
+        .audit-log {
+            background: #010a14;
+            border-radius: 16px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+
+        .audit-entry {
+            color: #88ffaa;
+            margin-bottom: 6px;
+            border-left: 2px solid #0ff;
+            padding-left: 8px;
+        }
+
+        button {
+            background: linear-gradient(95deg, #0066cc, #00a3cc);
+            border: none;
+            border-radius: 40px;
+            padding: 8px 16px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 12px;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 12px cyan;
+        }
+
+        .plot-container {
+            margin: 16px 0;
+        }
+
+        hr {
+            border-color: rgba(0, 255, 255, 0.2);
+            margin: 12px 0;
+        }
+
+        .badge {
+            background: #0ff20;
+            border-radius: 30px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+<div class="war-room">
+    <!-- 左：风险预测大脑 (经济沙盒对话 + 风险评分) -->
+    <div class="panel">
+        <h2><i class="fas fa-brain"></i> 风险预测大脑 · 地缘沙盒</h2>
+        <div class="chat-log" id="chatLog">
+            <div class="message"><span class="agent supplier">🛡️ 供应商Agent:</span> <span>正在评估红海航线中断概率...</span></div>
+            <div class="message"><span class="agent sanction">⚖️ 制裁国Agent:</span> <span>最新贸易禁运草案可能影响关键物资清关。</span></div>
+        </div>
+        <button id="runSandboxBtn"><i class="fas fa-play"></i> 启动经济沙盒演练</button>
+        <div class="risk-score">
+            <div style="color:#aaf;">综合风险指数 (0-10)</div>
+            <div class="risk-number" id="riskScore">4.2</div>
+            <div id="riskDesc" style="font-size:12px;">中等风险 · 建议监控</div>
+        </div>
+        <div style="margin-top:12px; font-size:12px; color:#8af;"><i class="fas fa-database"></i> 实时数据源: ACLED冲突报告 | 船公司AIS</div>
+    </div>
+
+    <!-- 中：方案决策中枢 (二次规划优化 + CVaR对比表) -->
+    <div class="panel">
+        <h2><i class="fas fa-chart-line"></i> 方案决策中枢 · 二次规划引擎</h2>
+        <div class="slider-group">
+            <label>风险厌恶系数 λ (Risk Aversion) : <span id="lambdaValue">0.65</span></label>
+            <input type="range" id="lambdaSlider" min="0" max="1.5" step="0.01" value="0.65">
+        </div>
+        <div id="assetPieChart" class="plot-container" style="height: 240px;"></div>
+        <div class="compare-table">
+            <div class="compare-row"><span>📊 方案 A (传统路径)</span><span>成本 $100M</span><span>CVaR(95%) 损失 $50M</span></div>
+            <div class="compare-row"><span>🚀 方案 B (系统优化)</span><span>成本 $115M</span><span style="color:#0ff;">CVaR(95%) 损失 $10M</span></div>
+            <div class="compare-row"><span><i class="fas fa-chart-simple"></i> 系统增益</span><span>溢价 +15%</span><span style="color:#88ff88;">极端风险 ↓80%</span></div>
+        </div>
+        <div style="font-size:12px; text-align:center; background:#0a2a3a; border-radius:20px; padding:8px;">
+            <i class="fas fa-calculator"></i> 目标函数: min ½ wᵀΣw – λ Rᵀw
+        </div>
+    </div>
+
+    <!-- 右：敏捷执行手脚 (步进式SOP + 区块链审计日志) -->
+    <div class="panel">
+        <h2><i class="fas fa-cogs"></i> 敏捷执行手脚 · 信任底座</h2>
+        <div id="sopList">
+            <div class="sop-step">✅ 步骤1: 风险识别 → 已触发地缘预警</div>
+            <div class="sop-step">⏳ 步骤2: 算法校准 → 二次规划权重优化</div>
+            <div class="sop-step">⏳ 步骤3: 供应商重分配 → 执行中</div>
+            <div class="sop-step">⏳ 步骤4: 区块链审计 → 等待共识</div>
+        </div>
+        <button id="executeSopBtn"><i class="fas fa-forward-step"></i> 步进执行下一阶段</button>
+        <div class="audit-log" id="auditLog">
+            <div class="audit-entry">[Block #1283] Model Update: hash 0x7a2b... Verified by 4 Federal Nodes</div>
+            <div class="audit-entry">[Block #1282] λ=0.65 → new weights computed</div>
+            <div class="audit-entry">[Block #1281] Risk score updated to 4.2</div>
+        </div>
+        <div style="margin-top:8px; font-size:11px; text-align:center; color:#6af;"><i class="fas fa-link"></i> 联邦学习信任锚点 | BeFL 分布式共识</div>
+    </div>
+</div>
+
+<script>
+    // ---------- 左侧沙盒对话与风险评分 (模拟两个Agent + 打字机效果) ----------
+    const chatLog = document.getElementById('chatLog');
+    const riskScoreSpan = document.getElementById('riskScore');
+    const riskDesc = document.getElementById('riskDesc');
+    let currentRisk = 4.2;
+    let isPlaying = false;
+
+    // 预设对话序列
+    const dialogues = [
+        { agent: 'supplier', text: '最新情报: 红海区域商船遇袭，保险战争险费率上涨300%。' },
+        { agent: 'sanction', text: '欧盟正在拟定第12轮对俄制裁，可能波及途经波罗的海的集装箱。' },
+        { agent: 'supplier', text: '我们监测到替代路线: 好望角绕行增加14天航程，但风险系数下降65%。' },
+        { agent: 'sanction', text: '根据经济沙盘推演，制裁升级概率升至78%。建议启用二次规划重分配供应链权重。' },
+        { agent: 'supplier', text: '已执行新资产权重: 亚洲供应商占比从45%调至62%，规避地缘风险。' }
+    ];
+
+    function typeMessage(element, text, callback) {
+        let i = 0;
+        element.innerHTML = '';
+        function typing() {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i);
+                i++;
+                setTimeout(typing, 30);
+            } else if (callback) callback();
+        }
+        typing();
+    }
+
+    function addMessage(agent, text, isTyping = true) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message';
+        const agentSpan = document.createElement('span');
+        agentSpan.className = `agent ${agent}`;
+        agentSpan.innerHTML = agent === 'supplier' ? '🛡️ 供应商Agent:' : '⚖️ 制裁国Agent:';
+        const contentSpan = document.createElement('span');
+        contentSpan.style.flex = '1';
+        msgDiv.appendChild(agentSpan);
+        msgDiv.appendChild(contentSpan);
+        chatLog.appendChild(msgDiv);
+        chatLog.scrollTop = chatLog.scrollHeight;
+        if (isTyping) {
+            typeMessage(contentSpan, text);
+        } else {
+            contentSpan.innerText = text;
+        }
+        return contentSpan;
+    }
+
+    // 模拟运行沙盒：逐条显示对话，最后更新风险评分
+    function runSandbox() {
+        if (isPlaying) return;
+        isPlaying = true;
+        // 清空现有消息（保留最初两条可不清，这里选择追加新对话）
+        // 为了效果，清空并重新开始
+        chatLog.innerHTML = '';
+        let idx = 0;
+        function showNext() {
+            if (idx >= dialogues.length) {
+                // 最终计算风险评分 (模拟对话后风险上升)
+                let newRisk = (4.2 + Math.random() * 3.5).toFixed(1);
+                if (parseFloat(newRisk) > 9) newRisk = 8.9;
+                updateRisk(parseFloat(newRisk));
+                const finalMsg = document.createElement('div');
+                finalMsg.className = 'message';
+                finalMsg.innerHTML = '<span class="agent" style="color:#0ff;">🧠 决策引擎:</span> <span>沙盒推演完成，综合风险指数更新，建议启用二次规划优化权重。</span>';
+                chatLog.appendChild(finalMsg);
+                isPlaying = false;
+                return;
+            }
+            const d = dialogues[idx];
+            addMessage(d.agent, d.text, true);
+            idx++;
+            setTimeout(showNext, 1800);
+        }
+        showNext();
+    }
+
+    function updateRisk(val) {
+        currentRisk = val;
+        riskScoreSpan.innerText = val.toFixed(1);
+        if (val >= 7) riskDesc.innerText = '高风险 · 建议立即执行SOP';
+        else if (val >= 4) riskDesc.innerText = '中等风险 · 监控预警';
+        else riskDesc.innerText = '低风险 · 常规运营';
+        // 添加审计日志
+        addAuditEntry(`Risk score updated to ${val.toFixed(1)} (沙盒推演结果)`);
+    }
+
+    // ---------- 中间二次规划优化 (模拟资产权重动态变化) ----------
+    // 模拟资产: 亚洲供应链、欧洲供应链、美洲供应链
+    let currentWeights = [0.45, 0.30, 0.25];  // 初始权重
+    let lambda = 0.65;
+    // 模拟协方差矩阵 (3x3)
+    const covMatrix = [
+        [0.04, 0.01, 0.02],
+        [0.01, 0.05, 0.015],
+        [0.02, 0.015, 0.06]
+    ];
+    // 模拟预期收益向量
+    const returns = [0.12, 0.08, 0.10];
+
+    // 二次规划模拟: 根据lambda重新计算最优权重 (简化: 利用风险调整后的权重)
+    function optimizeWeights(lambdaVal) {
+        // 模拟求解 min ½ w'Σw - λ R'w   (仅演示, 使用启发式调整)
+        // 实际更精细: 基于风险惩罚调整
+        let raw = [0.5, 0.3, 0.2];
+        // 根据lambda调整: 高λ倾向于高收益资产
+        let riskAdj = lambdaVal * 0.8;
+        let newW = [
+            Math.max(0.2, Math.min(0.7, 0.4 + riskAdj * 0.2)),
+            Math.max(0.1, Math.min(0.6, 0.3 - riskAdj * 0.1)),
+            Math.max(0.1, Math.min(0.5, 0.3 - riskAdj * 0.05))
+        ];
+        let sum = newW[0]+newW[1]+newW[2];
+        newW = newW.map(w => w/sum);
+        return newW;
+    }
+
+    function updatePieChart(weights) {
+        const data = [{
+            values: weights.map(w => w*100),
+            labels: ['亚洲供应链', '欧洲供应链', '美洲供应链'],
+            type: 'pie',
+            marker: { colors: ['#00ccff', '#ffaa44', '#33cc66'] },
+            textinfo: 'label+percent',
+            hole: 0.4,
+            hoverinfo: 'label+percent+value'
+        }];
+        const layout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#eef', size: 12 },
+            margin: { l: 20, r: 20, t: 20, b: 20 },
+            showlegend: true,
+            legend: { font: { color: '#ccf' } }
+        };
+        Plotly.newPlot('assetPieChart', data, layout, { responsive: true, displayModeBar: false });
+    }
+
+    function refreshOptimization() {
+        const newWeights = optimizeWeights(lambda);
+        currentWeights = newWeights;
+        updatePieChart(currentWeights);
+        // 记录审计
+        addAuditEntry(`二次规划优化: λ=${lambda.toFixed(2)} → 新权重 [${currentWeights.map(w=>w.toFixed(2)).join(', ')}]`);
+    }
+
+    // λ 滑动条监听
+    const lambdaSlider = document.getElementById('lambdaSlider');
+    const lambdaSpan = document.getElementById('lambdaValue');
+    lambdaSlider.addEventListener('input', function() {
+        lambda = parseFloat(this.value);
+        lambdaSpan.innerText = lambda.toFixed(2);
+        refreshOptimization();
+    });
+
+    // ---------- 右侧步进式SOP + 区块链审计 ----------
+    let stepIndex = 1; // 当前执行到的步骤 (1-4)
+    const sopSteps = [
+        { id: 1, name: '风险识别 → 已触发地缘预警', status: 'done' },
+        { id: 2, name: '算法校准 → 二次规划权重优化', status: 'pending' },
+        { id: 3, name: '供应商重分配 → 执行合约调整', status: 'pending' },
+        { id: 4, name: '区块链审计 → 写入信任锚点', status: 'pending' }
+    ];
+
+    function renderSOP() {
+        const container = document.getElementById('sopList');
+        if (!container) return;
+        container.innerHTML = sopSteps.map(step => {
+            let icon = step.status === 'done' ? '✅' : (step.status === 'inprogress' ? '⚡' : '⏳');
+            let extraClass = step.status === 'done' ? 'style="opacity:0.8;"' : '';
+            return `<div class="sop-step" ${extraClass}>${icon} ${step.name}</div>`;
+        }).join('');
+    }
+
+    function addAuditEntry(msg) {
+        const auditDiv = document.getElementById('auditLog');
+        const entry = document.createElement('div');
+        entry.className = 'audit-entry';
+        const timestamp = new Date().toLocaleTimeString();
+        entry.innerHTML = `[${timestamp}] ${msg}`;
+        auditDiv.prepend(entry);
+        if (auditDiv.children.length > 8) auditDiv.removeChild(auditDiv.lastChild);
+    }
+
+    function executeNextStep() {
+        if (stepIndex > sopSteps.length) {
+            addAuditEntry("所有SOP步骤已完成，系统就绪。");
+            return;
+        }
+        // 更新当前步骤状态
+        const currentStep = sopSteps.find(s => s.id === stepIndex);
+        if (currentStep) {
+            currentStep.status = 'inprogress';
+            renderSOP();
+            // 模拟执行延迟
+            setTimeout(() => {
+                currentStep.status = 'done';
+                renderSOP();
+                addAuditEntry(`SOP 步骤 ${stepIndex}: ${currentStep.name} 已完成 | 哈希校验通过`);
+                // 如果是步骤2，触发算法记录
+                if (stepIndex === 2) {
+                    addAuditEntry(`二次规划模型已部署，权重更新记录上链`);
+                }
+                if (stepIndex === 3) {
+                    addAuditEntry(`供应商合约已重分配，数字签名验证中...`);
+                }
+                if (stepIndex === 4) {
+                    addAuditEntry(`[Block #1290] BeFL联邦共识达成，本轮决策锚定完成。`);
+                }
+                stepIndex++;
+                // 递归执行下一步可自动，但为了体验，手动点击后再下一步
+            }, 800);
+        }
+    }
+
+    // 绑定按钮
+    document.getElementById('runSandboxBtn').addEventListener('click', runSandbox);
+    document.getElementById('executeSopBtn').addEventListener('click', executeNextStep);
+
+    // 初始化图表、权重
+    updatePieChart(currentWeights);
+    renderSOP();
+    addAuditEntry("系统启动 | DSS 地缘风险决策引擎在线");
+    addAuditEntry(`初始资产权重: Asia ${currentWeights[0].toFixed(2)}, EU ${currentWeights[1].toFixed(2)}, US ${currentWeights[2].toFixed(2)}`);
+
+    // 额外模拟一下初始对话 (让界面生动)
+    setTimeout(() => {
+        addMessage('supplier', '系统就绪，监控红海及霍尔木兹海峡动态。', false);
+    }, 500);
+</script>
+</body>
+</html>
